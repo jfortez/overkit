@@ -31,7 +31,14 @@ First, create a base component that will serve as the overlay (Modal, Drawer, Sh
 // components/modal.tsx
 import { registry, type RegistryComponentProps } from "overkit";
 
-const Modal = ({ open, onOpenChange, title, description, children }: RegistryComponentProps) => {
+const Modal = ({
+  open,
+  onOpenChange,
+  title,
+  description,
+  t,
+  children,
+}: RegistryComponentProps) => {
   if (!open) return null;
 
   return (
@@ -40,6 +47,7 @@ const Modal = ({ open, onOpenChange, title, description, children }: RegistryCom
         <h2>{title}</h2>
         <p>{description}</p>
         {children}
+        <t.Out /> {/* Portal outlet */}
       </div>
     </div>
   );
@@ -58,7 +66,9 @@ export const ModalRegistry = registry({
 import { Overkit } from "overkit";
 import { ModalRegistry } from "./modal";
 
-const o = new Overkit(["userModal", "confirmDialog"] as const).with(ModalRegistry).build();
+const o = new Overkit(["userModal", "confirmDialog"] as const)
+  .with(ModalRegistry)
+  .build();
 
 // Create simple overlay
 const userDialog = o.create("userModal", "modal").configure({
@@ -128,10 +138,12 @@ const dialog = o.create("myDialog", "modal");
 Extends the overlay state with additional properties.
 
 ```tsx
-const dialog = o.create("myDialog", "modal").extend<{ count: number }>((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-}));
+const dialog = o
+  .create("myDialog", "modal")
+  .extend<{ count: number }>((set) => ({
+    count: 0,
+    increment: () => set((state) => ({ count: state.count + 1 })),
+  }));
 ```
 
 ### `.configure(options)`
@@ -150,10 +162,14 @@ const dialog = o
     title: "Product",
 
     // Functions with store access
-    title: (store) => (store?.mode === "create" ? "Create Product" : "Edit Product"),
+    title: (store) =>
+      store?.mode === "create" ? "Create Product" : "Edit Product",
     description: (store) =>
-      store?.mode === "create" ? "Create a new product" : "Edit existing product",
-    className: (store) => (store?.mode === "create" ? "mode-create" : "mode-edit"),
+      store?.mode === "create"
+        ? "Create a new product"
+        : "Edit existing product",
+    className: (store) =>
+      store?.mode === "create" ? "mode-create" : "mode-edit",
   });
 ```
 
@@ -213,6 +229,20 @@ const View = dialog.view(({ useInnerContext }) => {
     </div>
   );
 });
+
+// With In portal component
+const View = dialog.view(({ close, In }) => (
+  <div>
+    <p>Main content here</p>
+    <In>
+      {/* This content will be rendered where t.Out is placed in the registry */}
+      <div className="footer">
+        <button onClick={close}>Cancel</button>
+        <button onClick={close}>Confirm</button>
+      </div>
+    </In>
+  </div>
+));
 ```
 
 ### `useOverkitStore`
@@ -229,6 +259,63 @@ setOpen(false);
 ```
 
 ## Advanced Examples
+
+### Portals (tunnel-rat)
+
+Overkit uses `tunnel-rat` to enable flexible rendering. You can render content in one part of your view and have it appear elsewhere in your overlay (e.g., buttons in a modal footer).
+
+**1. Update your registry component to include `t.Out`:**
+
+```tsx
+const Modal = ({
+  open,
+  onOpenChange,
+  title,
+  description,
+  t,
+  children,
+}: RegistryComponentProps) => {
+  if (!open) return null;
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-content">
+        <h2>{title}</h2>
+        <p>{description}</p>
+        {children}
+        <div className="modal-footer">
+          <t.Out /> {/* Portal outlet - content from <In> appears here */}
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+**2. Use `In` in your view to portal content:**
+
+```tsx
+const dialog = o.create("confirmDialog", "modal").configure({
+  title: "Confirm Action",
+  description: "Are you sure you want to proceed?",
+});
+
+const ConfirmView = dialog.view(({ close, In }) => (
+  <div>
+    <p>This content appears in the main modal body.</p>
+
+    <In>
+      {/* This content will be portaled to t.Out location */}
+      <button onClick={close} className="btn-secondary">
+        Cancel
+      </button>
+      <button onClick={close} className="btn-primary">
+        Confirm
+      </button>
+    </In>
+  </div>
+));
+```
 
 ### Product Sheet (Create/Edit)
 
