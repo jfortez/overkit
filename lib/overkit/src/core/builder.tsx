@@ -15,7 +15,7 @@ import type {
 
 type ViewProps<TProps extends object> = TProps & {
   close: () => void;
-  FooterButtons: ReturnType<typeof tunnel>["In"];
+  In: ReturnType<typeof tunnel>["In"];
 };
 
 type ExtendedState<T> = T & {
@@ -65,9 +65,18 @@ export class PortalBuilder<
   }
 
   configure(
-    options: InitViewProps<TExtendedProps, Extended extends true ? TExtendedState : never>,
+    options: InitViewProps<
+      TExtendedProps,
+      Extended extends true ? TExtendedState : never
+    >,
   ): PortalBuilder<TKeys, TKey, TExtendedProps, TExtendedState, Extended> {
-    const newBuilder = new PortalBuilder<TKeys, TKey, TExtendedProps, TExtendedState, Extended>(
+    const newBuilder = new PortalBuilder<
+      TKeys,
+      TKey,
+      TExtendedProps,
+      TExtendedState,
+      Extended
+    >(
       this.key,
       this.useFactoryStore,
       this.RegistryComponent,
@@ -86,7 +95,13 @@ export class PortalBuilder<
       get: StoreApi<ExtendedState<TNewState>>["getState"],
     ) => TNewState,
   ): PortalBuilder<TKeys, TKey, TExtendedProps, TNewState, true> {
-    const newBuilder = new PortalBuilder<TKeys, TKey, TExtendedProps, TNewState, true>(
+    const newBuilder = new PortalBuilder<
+      TKeys,
+      TKey,
+      TExtendedProps,
+      TNewState,
+      true
+    >(
       this.key,
       this.useFactoryStore,
       this.RegistryComponent,
@@ -109,13 +124,17 @@ export class PortalBuilder<
     return () => innerStore!;
   };
 
-  get useInnerContext(): Extended extends true ? UseInnerContextHook<TExtendedState> : never {
+  get useInnerContext(): Extended extends true
+    ? UseInnerContextHook<TExtendedState>
+    : never {
     return this.getInnerStore() as Extended extends true
       ? UseInnerContextHook<TExtendedState>
       : never;
   }
 
-  private parseOptions(options: InitViewProps<TExtendedProps>): _SharedProps<TExtendedProps> {
+  private parseOptions(
+    options: InitViewProps<TExtendedProps>,
+  ): _SharedProps<TExtendedProps> {
     const innerStore = this.innerStore;
 
     const parsedOptions = Object.fromEntries(
@@ -124,12 +143,17 @@ export class PortalBuilder<
         if (typeof value === "function") {
           const isHook = HOOKS.includes(key);
           if (isHook) {
-            const fn = (store?: TExtendedState, storeApi?: StoreApi<TExtendedState>) => {
+            const fn = (
+              store?: TExtendedState,
+              storeApi?: StoreApi<TExtendedState>,
+            ) => {
               return () =>
-                (value as (store?: TExtendedState, storeApi?: StoreApi<TExtendedState>) => void)(
-                  store,
-                  storeApi,
-                );
+                (
+                  value as (
+                    store?: TExtendedState,
+                    storeApi?: StoreApi<TExtendedState>,
+                  ) => void
+                )(store, storeApi);
             };
             return [key, fn(state, innerStore)];
           }
@@ -164,9 +188,13 @@ export class PortalBuilder<
 
     return (props: TProps) => {
       const isOpen = useFactoryStore((store) => store.states[key]);
-      const capitalize = (key.charAt(0).toUpperCase() + key.slice(1)) as Capitalize<TKey>;
+      const capitalize = (key.charAt(0).toUpperCase() +
+        key.slice(1)) as Capitalize<TKey>;
       const openChange = useFactoryStore(
-        (store) => store[`set${capitalize}` as keyof typeof store] as (value: boolean) => void,
+        (store) =>
+          store[`set${capitalize}` as keyof typeof store] as (
+            value: boolean,
+          ) => void,
       );
 
       const injectedProps = this.extended
@@ -192,7 +220,7 @@ export class PortalBuilder<
         ...injectedProps,
         ...props,
         close,
-        FooterButtons: t.In,
+        In: t.In,
       };
 
       if (this.extended) {
@@ -200,14 +228,22 @@ export class PortalBuilder<
       }
 
       return (
-        <RegistryComponent open={isOpen} onOpenChange={openChange} t={t} {...options}>
+        <RegistryComponent
+          open={isOpen}
+          onOpenChange={openChange}
+          t={t}
+          {...options}
+        >
           <Component {...componentProps} />
         </RegistryComponent>
       );
     };
   };
 
-  trigger = <THubComponentProps extends object = object, TProps extends object = object>({
+  trigger = <
+    THubComponentProps extends object = object,
+    TProps extends object = object,
+  >({
     before,
     componentProps,
     ...props
@@ -217,10 +253,14 @@ export class PortalBuilder<
     children?: React.ReactNode;
   } & ValueProperties<TExtendedState>) => {
     const key = this.key;
-    const capitalize = (key.charAt(0).toUpperCase() + key.slice(1)) as Capitalize<TKey>;
+    const capitalize = (key.charAt(0).toUpperCase() +
+      key.slice(1)) as Capitalize<TKey>;
 
     const openChange = this.useFactoryStore(
-      (store) => store[`set${capitalize}` as keyof typeof store] as (value: boolean) => void,
+      (store) =>
+        store[`set${capitalize}` as keyof typeof store] as (
+          value: boolean,
+        ) => void,
     );
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -228,7 +268,8 @@ export class PortalBuilder<
       // return safeProps values that is included in this.innerStore.getInitialState()
       const portalStore = this.innerStore;
 
-      if (!portalStore) return { safeProps: props, innerStoreValues: undefined };
+      if (!portalStore)
+        return { safeProps: props, innerStoreValues: undefined };
       const innerStoreDefaultValues = this.innerStore!.getInitialState();
       const storeKeys = Object.keys(innerStoreDefaultValues);
 
@@ -242,9 +283,9 @@ export class PortalBuilder<
           if (!storeKeys.includes(key)) {
             safeProps[key] = (props as Record<string, unknown>)[key];
           } else {
-            innerStoreValues[key as keyof TExtendedState] = (props as TExtendedState)[
-              key as keyof TExtendedState
-            ];
+            innerStoreValues[key as keyof TExtendedState] = (
+              props as TExtendedState
+            )[key as keyof TExtendedState];
           }
         }
       }

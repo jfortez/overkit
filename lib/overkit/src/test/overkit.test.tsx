@@ -28,6 +28,8 @@ describe("Overkit Integration", () => {
       "dialog5",
       "dialog6",
       "productDialog",
+      "portalDialog",
+      "multiPortalDialog",
     ] as const);
   });
 
@@ -350,6 +352,111 @@ describe("Overkit Integration", () => {
           "Mode: edit",
         );
       });
+    });
+  });
+
+  describe("Portal (tunnel-rat)", () => {
+    it("should render In content through portal", async () => {
+      const portalDialog = o.create("portalDialog", "dialog").configure({
+        title: "Portal Test",
+        description: "Testing tunnel-rat portal functionality",
+      });
+
+      const TriggerPortal = portalDialog.trigger;
+      const PortalView = portalDialog.view(({ close, In }) => (
+        <div>
+          <p data-testid="main-content">Main Dialog Content</p>
+          <In>
+            <div data-testid="portal-content">Portal Content</div>
+            <button data-testid="portal-button" onClick={close}>
+              Close
+            </button>
+          </In>
+        </div>
+      ));
+
+      const App = () => (
+        <div>
+          <TriggerPortal>
+            <button>Open Portal Dialog</button>
+          </TriggerPortal>
+          <PortalView />
+        </div>
+      );
+
+      render(<App />);
+
+      expect(screen.queryByTestId("dialog")).toBeNull();
+
+      fireEvent.click(screen.getByText("Open Portal Dialog"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("dialog")).toBeInTheDocument();
+        expect(screen.getByTestId("main-content")).toBeInTheDocument();
+        expect(screen.getByTestId("portal-button")).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId("portal-button")).toHaveTextContent("Close");
+
+      fireEvent.click(screen.getByTestId("portal-button"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("dialog")).toBeNull();
+      });
+    });
+
+    it("should render multiple portal elements", async () => {
+      const multiPortalDialog = o
+        .create("multiPortalDialog", "dialog")
+        .configure({
+          title: "Multi Portal Test",
+          description: "Testing multiple tunnel-rat portals",
+        });
+
+      const TriggerMulti = multiPortalDialog.trigger;
+      const MultiPortalView = multiPortalDialog.view(({ In }: { In?: any }) => (
+        <div>
+          <p data-testid="content-1">First Content</p>
+          <In>
+            <div data-testid="portal-content-1">Portal Item 1</div>
+            <div data-testid="portal-content-2">Portal Item 2</div>
+            <button data-testid="portal-action">Portal Action</button>
+          </In>
+          <p data-testid="content-2">Second Content</p>
+        </div>
+      ));
+
+      const App = () => (
+        <div>
+          <TriggerMulti>
+            <button>Open Multi Portal</button>
+          </TriggerMulti>
+          <MultiPortalView />
+        </div>
+      );
+
+      render(<App />);
+
+      fireEvent.click(screen.getByText("Open Multi Portal"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("dialog")).toBeInTheDocument();
+        expect(screen.getByTestId("content-1")).toBeInTheDocument();
+        expect(screen.getByTestId("content-2")).toBeInTheDocument();
+        expect(screen.getByTestId("portal-content-1")).toBeInTheDocument();
+        expect(screen.getByTestId("portal-content-2")).toBeInTheDocument();
+        expect(screen.getByTestId("portal-action")).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId("portal-content-1")).toHaveTextContent(
+        "Portal Item 1",
+      );
+      expect(screen.getByTestId("portal-content-2")).toHaveTextContent(
+        "Portal Item 2",
+      );
+      expect(screen.getByTestId("portal-action")).toHaveTextContent(
+        "Portal Action",
+      );
     });
   });
 });
