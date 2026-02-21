@@ -1,5 +1,16 @@
 # overkit
 
+## 0.0.4
+
+### Patch Changes
+
+- [`2e74d0b`](https://github.com/jfortez/overkit/commit/2e74d0bafde306d7f714c596639a144aa24c5149) Thanks [@jfortez](https://github.com/jfortez)! - Fix test failures and portal functionality
+  - Fixed duplicate test code causing syntax errors
+  - Added missing dialog keys (portalDialog, multiPortalDialog) to test registry
+  - Corrected test assertions for portal button text
+  - All 9 tests now passing successfully
+  - Build verified and working
+
 ## 0.0.3
 
 ### Patch Changes

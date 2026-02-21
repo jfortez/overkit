@@ -1,6 +1,6 @@
 {
   "name": "overkit",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Simplified overlay management system for React",
   "type": "module",
   "main": "./dist/index.mjs",
