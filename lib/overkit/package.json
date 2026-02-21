@@ -1,6 +1,7 @@
 {
   "name": "overkit",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "description": "Simplified overlay management system for React",
   "type": "module",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
@@ -12,12 +13,44 @@
       "require": "./dist/index.mjs"
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsdown",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run"
   },
+  "keywords": [
+    "react",
+    "reactjs",
+    "overlay",
+    "modal",
+    "dialog",
+    "drawer",
+    "sheet",
+    "portal",
+    "zustand",
+    "state-management",
+    "typescript"
+  ],
+  "author": {
+    "name": "Jean Caiza",
+    "email": "jeanmcm@hotmail.com",
+    "url": "https://github.com/jfortez"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jfortez/overkit.git",
+    "directory": "lib/overkit"
+  },
+  "bugs": {
+    "url": "https://github.com/jfortez/overkit/issues"
+  },
+  "homepage": "https://github.com/jfortez/overkit#readme",
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.0.0",
