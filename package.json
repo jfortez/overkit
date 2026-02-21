@@ -30,6 +30,7 @@
     "release": "turbo run build --filter=overkit && changeset publish"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
     "prettier": "^3.7.4",
     "turbo": "^2.8.10",
