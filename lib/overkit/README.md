@@ -21,12 +21,6 @@ yarn add overkit
 pnpm add overkit
 ```
 
-## Dependencies
-
-```bash
-npm install zustand @radix-ui/react-slot tunnel-rat
-```
-
 ## Basic Usage
 
 ### 1. Create a Registry
@@ -37,13 +31,7 @@ First, create a base component that will serve as the overlay (Modal, Drawer, Sh
 // components/modal.tsx
 import { registry, type RegistryComponentProps } from "overkit";
 
-const Modal = ({
-  open,
-  onOpenChange,
-  title,
-  description,
-  children,
-}: RegistryComponentProps) => {
+const Modal = ({ open, onOpenChange, title, description, children }: RegistryComponentProps) => {
   if (!open) return null;
 
   return (
@@ -70,9 +58,7 @@ export const ModalRegistry = registry({
 import { Overkit } from "overkit";
 import { ModalRegistry } from "./modal";
 
-const o = new Overkit(["userModal", "confirmDialog"] as const)
-  .with(ModalRegistry)
-  .build();
+const o = new Overkit(["userModal", "confirmDialog"] as const).with(ModalRegistry).build();
 
 // Create simple overlay
 const userDialog = o.create("userModal", "modal").configure({
@@ -142,12 +128,10 @@ const dialog = o.create("myDialog", "modal");
 Extends the overlay state with additional properties.
 
 ```tsx
-const dialog = o
-  .create("myDialog", "modal")
-  .extend<{ count: number }>((set) => ({
-    count: 0,
-    increment: () => set((state) => ({ count: state.count + 1 })),
-  }));
+const dialog = o.create("myDialog", "modal").extend<{ count: number }>((set) => ({
+  count: 0,
+  increment: () => set((state) => ({ count: state.count + 1 })),
+}));
 ```
 
 ### `.configure(options)`
@@ -166,14 +150,10 @@ const dialog = o
     title: "Product",
 
     // Functions with store access
-    title: (store) =>
-      store?.mode === "create" ? "Create Product" : "Edit Product",
+    title: (store) => (store?.mode === "create" ? "Create Product" : "Edit Product"),
     description: (store) =>
-      store?.mode === "create"
-        ? "Create a new product"
-        : "Edit existing product",
-    className: (store) =>
-      store?.mode === "create" ? "mode-create" : "mode-edit",
+      store?.mode === "create" ? "Create a new product" : "Edit existing product",
+    className: (store) => (store?.mode === "create" ? "mode-create" : "mode-edit"),
   });
 ```
 
