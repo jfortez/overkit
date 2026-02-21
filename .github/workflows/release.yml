@@ -36,7 +36,7 @@ jobs:
         run: bun install
 
       - name: Run Tests
-        run: bun run test --filter=overkit --run
+        run: bun run --filter=overkit test:run
 
       - name: Build Package
         run: bun run build --filter=overkit
@@ -50,3 +50,4 @@ jobs:
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
