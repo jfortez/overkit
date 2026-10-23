@@ -1,5 +1,11 @@
 # overkit
 
+## 0.0.6
+
+### Patch Changes
+
+- [#4](https://github.com/jfortez/overkit/pull/4) [`eed33f1`](https://github.com/jfortez/overkit/commit/eed33f17733a9fc81a6111675cdf783fbb373a5d) Thanks [@jfortez](https://github.com/jfortez)! - Remove runtime dependencies and the tunnel API (`t`, `In`, `Out`). `configure` values derived from the store are now reactive, `beforeOpen` sees the trigger props, and `beforeClose` runs on every close with the current state.
+
 ## 0.0.5
 
 ### Patch Changes
