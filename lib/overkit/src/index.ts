@@ -1,3 +1,3 @@
-export { registry, } from "./core/registry";
+export { registry } from "./core/registry";
 export type { RegistryComponentProps } from "./types";
-export { Overkit } from './core/overkit'
+export { Overkit } from "./core/overkit";

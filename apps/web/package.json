@@ -9,14 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.2.4",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "overkit": "workspace:*",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "tunnel-rat": "^0.1.2",
-    "zustand": "^5.0.11"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
