@@ -32,8 +32,8 @@
     "drawer",
     "sheet",
     "portal",
-    "zustand",
     "state-management",
+    "zero-dependencies",
     "typescript"
   ],
   "author": {
@@ -66,10 +66,5 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
-  },
-  "dependencies": {
-    "zustand": "^5.0.0",
-    "@radix-ui/react-slot": "^1.1.0",
-    "tunnel-rat": "^0.1.0"
   }
 }

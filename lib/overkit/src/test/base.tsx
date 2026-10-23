@@ -10,7 +10,6 @@ const Dialog = ({
   title,
   description,
   className,
-  t,
   children,
 }: RegistryComponentProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -44,7 +43,6 @@ const Dialog = ({
         {title && <h2 data-testid="dialog-title">{title}</h2>}
         {description && <p data-testid="dialog-description">{description}</p>}
         {children}
-        <t.Out />
       </div>
     </div>,
     document.body,

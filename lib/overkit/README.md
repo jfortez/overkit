@@ -1,12 +1,11 @@
 # Overkit
 
-Simplified overlay management system for React and Next.js. Uses Zustand for state management and allows creating modals, drawers, sheets, and more with ease.
+Simplified overlay management system for React and Next.js. Zero runtime dependencies: it ships its own store, and lets you create modals, drawers, sheets, and more with ease.
 
 ## Features
 
-- **Centralized State**: State management with Zustand
+- **Centralized State**: Built-in store, no external state library
 - **Simple Triggers**: Open overlays with a single click
-- **Portals**: Flexible rendering with tunnel-rat
 - **TypeScript**: Complete and safe typing
 - **Dynamic Configuration**: Props based on store state
 - **Built-in Hooks**: Access state from any component
@@ -36,7 +35,6 @@ const Modal = ({
   onOpenChange,
   title,
   description,
-  t,
   children,
 }: RegistryComponentProps) => {
   if (!open) return null;
@@ -47,7 +45,6 @@ const Modal = ({
         <h2>{title}</h2>
         <p>{description}</p>
         {children}
-        <t.Out /> {/* Portal outlet */}
       </div>
     </div>
   );
@@ -229,20 +226,6 @@ const View = dialog.view(({ useInnerContext }) => {
     </div>
   );
 });
-
-// With In portal component
-const View = dialog.view(({ close, In }) => (
-  <div>
-    <p>Main content here</p>
-    <In>
-      {/* This content will be rendered where t.Out is placed in the registry */}
-      <div className="footer">
-        <button onClick={close}>Cancel</button>
-        <button onClick={close}>Confirm</button>
-      </div>
-    </In>
-  </div>
-));
 ```
 
 ### `useOverkitStore`
@@ -259,63 +242,6 @@ setOpen(false);
 ```
 
 ## Advanced Examples
-
-### Portals (tunnel-rat)
-
-Overkit uses `tunnel-rat` to enable flexible rendering. You can render content in one part of your view and have it appear elsewhere in your overlay (e.g., buttons in a modal footer).
-
-**1. Update your registry component to include `t.Out`:**
-
-```tsx
-const Modal = ({
-  open,
-  onOpenChange,
-  title,
-  description,
-  t,
-  children,
-}: RegistryComponentProps) => {
-  if (!open) return null;
-
-  return (
-    <div className="modal-backdrop">
-      <div className="modal-content">
-        <h2>{title}</h2>
-        <p>{description}</p>
-        {children}
-        <div className="modal-footer">
-          <t.Out /> {/* Portal outlet - content from <In> appears here */}
-        </div>
-      </div>
-    </div>
-  );
-};
-```
-
-**2. Use `In` in your view to portal content:**
-
-```tsx
-const dialog = o.create("confirmDialog", "modal").configure({
-  title: "Confirm Action",
-  description: "Are you sure you want to proceed?",
-});
-
-const ConfirmView = dialog.view(({ close, In }) => (
-  <div>
-    <p>This content appears in the main modal body.</p>
-
-    <In>
-      {/* This content will be portaled to t.Out location */}
-      <button onClick={close} className="btn-secondary">
-        Cancel
-      </button>
-      <button onClick={close} className="btn-primary">
-        Confirm
-      </button>
-    </In>
-  </div>
-));
-```
 
 ### Product Sheet (Create/Edit)
 

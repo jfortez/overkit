@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Slot } from "@radix-ui/react-slot";
 import type React from "react";
 import { useCallback, useMemo } from "react";
-import tunnel from "tunnel-rat";
-import { create, type StoreApi, type UseBoundStore } from "zustand";
+
+import { Slot } from "./slot";
+import { createStore, type StoreApi, type UseBoundStore } from "./state";
 
 import type {
   _SharedProps,
@@ -15,13 +14,10 @@ import type {
 
 type ViewProps<TProps extends object> = TProps & {
   close: () => void;
-  In: ReturnType<typeof tunnel>["In"];
 };
 
 type ExtendedState<T> = T & {
-  _internal?: any;
-
-  _injectedProps?: Record<string, any>;
+  _injectedProps?: Record<string, unknown>;
 };
 
 type UseInnerContextHook<TState> = <TSelected = TState>(
@@ -29,10 +25,24 @@ type UseInnerContextHook<TState> = <TSelected = TState>(
 ) => TSelected;
 
 type ValueProperties<T> = {
-  [K in keyof T as T[K] extends (...args: any[]) => any ? never : K]: T[K];
+  [K in keyof T as T[K] extends (...args: never[]) => unknown
+    ? never
+    : K]: T[K];
 };
 
-const HOOKS = ["beforeOpen", "beforeClose"];
+type HookName = "beforeOpen" | "beforeClose";
+
+const isHookName = (name: string): name is HookName =>
+  name === "beforeOpen" || name === "beforeClose";
+
+const capitalizeKey = <Key extends string>(key: Key) =>
+  `${key.charAt(0).toUpperCase()}${key.slice(1)}` as Capitalize<Key>;
+
+const setFactoryValue = <TKeys extends readonly string[]>(
+  store: UseBoundStore<FactoryStore<TKeys>>,
+  key: keyof FactoryStore<TKeys>,
+  value: boolean,
+) => (store.getState()[key] as (value: boolean) => void)(value);
 
 export class PortalBuilder<
   TKeys extends readonly string[],
@@ -42,22 +52,20 @@ export class PortalBuilder<
   Extended extends boolean = false,
 > {
   private key: TKey;
-  private t: ReturnType<typeof tunnel>;
   private options: InitViewProps<TExtendedProps>;
   private RegistryComponent: React.ComponentType<RegistryComponentProps>;
-  private innerStore?: UseBoundStore<StoreApi<ExtendedState<TExtendedState>>>;
-  private useFactoryStore: UseBoundStore<StoreApi<FactoryStore<TKeys>>>;
+  private innerStore: UseBoundStore<ExtendedState<TExtendedState>> | undefined;
+  private useFactoryStore: UseBoundStore<FactoryStore<TKeys>>;
   private extended: boolean;
 
   constructor(
     key: TKey,
-    useFactoryStore: UseBoundStore<StoreApi<FactoryStore<TKeys>>>,
+    useFactoryStore: UseBoundStore<FactoryStore<TKeys>>,
     HubItemComponent: React.ComponentType<RegistryComponentProps>,
     options: InitViewProps<TExtendedProps> = {} as InitViewProps<TExtendedProps>,
     extended: Extended = false as Extended,
   ) {
     this.key = key;
-    this.t = tunnel();
     this.options = options;
     this.RegistryComponent = HubItemComponent;
     this.useFactoryStore = useFactoryStore;
@@ -83,7 +91,6 @@ export class PortalBuilder<
       { ...this.options, ...options },
       this.extended as Extended,
     );
-    newBuilder.t = this.t;
     newBuilder.innerStore = this.innerStore;
 
     return newBuilder;
@@ -108,11 +115,12 @@ export class PortalBuilder<
       this.options,
       true,
     );
-    newBuilder.t = this.t;
 
-    newBuilder.innerStore = create<ExtendedState<TNewState>>()((set, get) => ({
-      ...storeCreator(set, get),
-    }));
+    newBuilder.innerStore = createStore<ExtendedState<TNewState>>(
+      (set, get) => ({
+        ...storeCreator(set, get),
+      }),
+    );
 
     // TODO: omit extended state from newBuilder
     return newBuilder;
@@ -133,38 +141,34 @@ export class PortalBuilder<
   }
 
   private parseOptions(
-    options: InitViewProps<TExtendedProps>,
+    state: TExtendedState | undefined,
   ): _SharedProps<TExtendedProps> {
-    const innerStore = this.innerStore;
+    const shared: Record<string, unknown> = {};
 
-    const parsedOptions = Object.fromEntries(
-      Object.entries(options).map(([key, value]) => {
-        const state = innerStore?.getState() || ({} as TExtendedState);
-        if (typeof value === "function") {
-          const isHook = HOOKS.includes(key);
-          if (isHook) {
-            const fn = (
-              store?: TExtendedState,
-              storeApi?: StoreApi<TExtendedState>,
-            ) => {
-              return () =>
-                (
-                  value as (
-                    store?: TExtendedState,
-                    storeApi?: StoreApi<TExtendedState>,
-                  ) => void
-                )(store, storeApi);
-            };
-            return [key, fn(state, innerStore)];
-          }
-          const resolvedValue = value(state);
-          return [key, resolvedValue];
-        }
-        return [key, value];
-      }),
-    ) as _SharedProps<TExtendedProps>;
+    for (const name of Object.keys(this.options)) {
+      if (isHookName(name)) continue;
 
-    return parsedOptions;
+      const value = (this.options as Record<string, unknown>)[name];
+      shared[name] =
+        typeof value === "function"
+          ? (value as (state: TExtendedState | undefined) => unknown)(state)
+          : value;
+    }
+
+    return shared as _SharedProps<TExtendedProps>;
+  }
+
+  private runHook(name: HookName) {
+    const hook = this.options[name] as unknown as
+      | ((
+          state?: TExtendedState,
+          api?: UseBoundStore<ExtendedState<TExtendedState>>,
+        ) => void)
+      | undefined;
+
+    if (!hook) return;
+
+    hook(this.innerStore?.getState(), this.innerStore);
   }
 
   view = <TProps extends object = object>(
@@ -180,59 +184,60 @@ export class PortalBuilder<
     >,
   ): React.FC<TProps> => {
     const key = this.key;
-    const t = this.t;
+    const setterKey = `set${capitalizeKey(key)}` as keyof FactoryStore<TKeys>;
 
     const RegistryComponent = this.RegistryComponent;
     const useInnerContextHook = this.getInnerStore()();
     const useFactoryStore = this.useFactoryStore;
+    const innerStore = this.innerStore;
+    const extended = this.extended;
 
     return (props: TProps) => {
       const isOpen = useFactoryStore((store) => store.states[key]);
-      const capitalize = (key.charAt(0).toUpperCase() +
-        key.slice(1)) as Capitalize<TKey>;
-      const openChange = useFactoryStore(
-        (store) =>
-          store[`set${capitalize}` as keyof typeof store] as (
-            value: boolean,
-          ) => void,
-      );
 
-      const injectedProps = this.extended
-        ? useInnerContextHook((state) => state._injectedProps)
+      const openChange = useCallback((value: boolean) => {
+        setFactoryValue(useFactoryStore, setterKey, value);
+      }, []);
+
+      const innerState = extended
+        ? useInnerContextHook((state) => state)
         : undefined;
+      const injectedProps = innerState?._injectedProps;
 
-      const options = this.parseOptions(this.options);
-
-      const innerStore = this.innerStore;
+      const shared = useMemo(() => this.parseOptions(innerState), [innerState]);
 
       const close = useCallback(() => {
-        options?.beforeClose?.();
-        // Clear injected props when closing
-        if (innerStore) {
+        this.runHook("beforeClose");
+
+        if (innerStore && innerStore.getState()._injectedProps !== undefined) {
           innerStore.setState({ _injectedProps: undefined } as Partial<
             ExtendedState<TExtendedState>
           >);
         }
-        openChange(false);
-      }, [openChange, options, innerStore]);
 
-      const componentProps: any = {
+        openChange(false);
+      }, [openChange]);
+
+      const handleOpenChange = useCallback(
+        (open: boolean) => {
+          if (open) openChange(true);
+          else close();
+        },
+        [close, openChange],
+      );
+
+      const componentProps = {
         ...injectedProps,
         ...props,
         close,
-        In: t.In,
-      };
-
-      if (this.extended) {
-        componentProps.useInnerContext = useInnerContextHook;
-      }
+        ...(extended ? { useInnerContext: useInnerContextHook } : {}),
+      } as React.ComponentProps<typeof Component>;
 
       return (
         <RegistryComponent
           open={isOpen}
-          onOpenChange={openChange}
-          t={t}
-          {...options}
+          onOpenChange={handleOpenChange}
+          {...shared}
         >
           <Component {...componentProps} />
         </RegistryComponent>
@@ -252,67 +257,49 @@ export class PortalBuilder<
     componentProps?: Partial<THubComponentProps>;
     children?: React.ReactNode;
   } & ValueProperties<TExtendedState>) => {
-    const key = this.key;
-    const capitalize = (key.charAt(0).toUpperCase() +
-      key.slice(1)) as Capitalize<TKey>;
+    const setterKey =
+      `set${capitalizeKey(this.key)}` as keyof FactoryStore<TKeys>;
+    const portalStore = this.innerStore;
+    const initialValues = portalStore?.getInitialState();
+    const storeKeys = initialValues ? Object.keys(initialValues) : [];
+    const storeValues: Partial<TExtendedState> = {
+      ...(initialValues as TExtendedState | undefined),
+    };
+    const safeProps: Record<string, unknown> = {};
 
-    const openChange = this.useFactoryStore(
-      (store) =>
-        store[`set${capitalize}` as keyof typeof store] as (
-          value: boolean,
-        ) => void,
-    );
+    for (const name in props) {
+      if (!Object.prototype.hasOwnProperty.call(props, name)) continue;
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { safeProps, innerStoreValues } = useMemo(() => {
-      // return safeProps values that is included in this.innerStore.getInitialState()
-      const portalStore = this.innerStore;
-
-      if (!portalStore)
-        return { safeProps: props, innerStoreValues: undefined };
-      const innerStoreDefaultValues = this.innerStore!.getInitialState();
-      const storeKeys = Object.keys(innerStoreDefaultValues);
-
-      const safeProps: Record<string, unknown> = {};
-      const innerStoreValues: Partial<TExtendedState> = {
-        ...innerStoreDefaultValues,
-      };
-
-      for (const key in props) {
-        if (Object.prototype.hasOwnProperty.call(props, key)) {
-          if (!storeKeys.includes(key)) {
-            safeProps[key] = (props as Record<string, unknown>)[key];
-          } else {
-            innerStoreValues[key as keyof TExtendedState] = (
-              props as TExtendedState
-            )[key as keyof TExtendedState];
-          }
-        }
+      if (storeKeys.includes(name)) {
+        storeValues[name as keyof TExtendedState] = (props as TExtendedState)[
+          name as keyof TExtendedState
+        ];
+      } else {
+        safeProps[name] = (props as Record<string, unknown>)[name];
       }
+    }
 
-      return { safeProps, innerStoreValues };
-    }, [props]);
+    const { onClick: triggerClick, ...restProps } = safeProps as {
+      onClick?: React.MouseEventHandler;
+    } & Record<string, unknown>;
 
-    const handleClick = () => {
-      const portalStore = this.innerStore;
-      const options = this.parseOptions(this.options);
-      const innerStore = portalStore?.getState();
-
-      options?.beforeOpen?.();
+    const handleClick: React.MouseEventHandler = (event) => {
+      triggerClick?.(event);
 
       if (portalStore) {
-        const stateUpdate = {
-          ...innerStoreValues,
-          _injectedProps: (componentProps as any) ?? undefined,
-        } as Partial<ExtendedState<TExtendedState>>;
-
-        portalStore.setState(stateUpdate);
+        portalStore.setState({
+          ...storeValues,
+          _injectedProps:
+            (componentProps as Record<string, unknown> | undefined) ??
+            undefined,
+        } as Partial<ExtendedState<TExtendedState>>);
       }
 
-      before?.(innerStore);
-      openChange(true);
+      this.runHook("beforeOpen");
+      before?.(portalStore?.getState());
+      setFactoryValue(this.useFactoryStore, setterKey, true);
     };
 
-    return <Slot onClick={handleClick} {...safeProps} />;
+    return <Slot onClick={handleClick} {...restProps} />;
   };
 }
